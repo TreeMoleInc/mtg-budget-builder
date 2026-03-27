@@ -8,7 +8,7 @@ import customtkinter as ctk
 from core.parser import parse_decklist
 from core import finder
 
-CURRENT_VERSION = "v1.0.0"
+CURRENT_VERSION = "v1.0.0" 
 RELEASES_URL = "https://github.com/TreeMoleInc/mtg-budget-builder/releases/latest"
 GITHUB_API_URL = "https://api.github.com/repos/TreeMoleInc/mtg-budget-builder/releases/latest"
 
@@ -86,6 +86,7 @@ class BudgetBuilderApp(ctk.CTk):
 
         # Track whether a search is running
         self._searching = False
+        self._cancel_event = None
 
         # Basics discount toggle
         self.discount_basics_var = ctk.BooleanVar(value=False)
@@ -372,6 +373,21 @@ class BudgetBuilderApp(ctk.CTk):
         return "break"
 
     # -----------------------------------------------------------------------
+    def _reset_search_btn(self):
+        self.search_btn.configure(
+            text="Find Cheapest Versions",
+            fg_color=BTN_GREEN,
+            hover_color=BTN_HOVER,
+            command=self._on_search_clicked,
+            state="normal",
+        )
+
+    def _on_cancel_clicked(self):
+        if self._cancel_event:
+            self._cancel_event.set()
+        self.search_btn.configure(state="disabled", text="Cancelling...")
+        self.status_label.configure(text="Cancelling...", text_color=MUTED_COLOR)
+
     # Search
     # -----------------------------------------------------------------------
     def _on_search_clicked(self):
@@ -414,11 +430,16 @@ class BudgetBuilderApp(ctk.CTk):
             text=f"Starting search... (0 / {len(cards)})", text_color=MUTED_COLOR
         )
 
-        # Disable search button
+        # Switch search button to Cancel
         self._searching = True
-        self.search_btn.configure(state="disabled", text="Searching...")
+        self.search_btn.configure(
+            text="Cancel",
+            fg_color="#e53935",
+            hover_color="#b71c1c",
+            command=self._on_cancel_clicked,
+        )
 
-        finder.start_search(
+        _, self._cancel_event = finder.start_search(
             cards,
             on_progress=self._cb_progress,
             on_complete=self._cb_complete,
@@ -475,7 +496,7 @@ class BudgetBuilderApp(ctk.CTk):
                 text_color=MUTED_COLOR,
             )
             self._searching = False
-            self.search_btn.configure(state="normal", text="Find Cheapest Versions")
+            self._reset_search_btn()
 
         self.after(0, _update)
 
@@ -488,7 +509,7 @@ class BudgetBuilderApp(ctk.CTk):
                 text=f"Error: {message}", text_color=ERROR_COLOR
             )
             self._searching = False
-            self.search_btn.configure(state="normal", text="Find Cheapest Versions")
+            self._reset_search_btn()
 
         self.after(0, _update)
 

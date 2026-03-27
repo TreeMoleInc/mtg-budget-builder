@@ -40,6 +40,7 @@ def run_search(
     on_complete: callable,
     on_error: callable,
     discount_basics: bool = False,
+    cancel_event: threading.Event | None = None,
 ) -> None:
     """
     Search for the cheapest version of each card in card_list.
@@ -47,6 +48,8 @@ def run_search(
     Calls on_progress(current, total, card_name, result_line, price_str, is_basic) after each card.
     Calls on_complete(result_lines, error_lines, total_price, total_cards, unique_cards) when done.
     Calls on_error(message) on unexpected fatal error.
+
+    If cancel_event is set mid-search, stops early and calls on_complete with partial results.
 
     Intended to be run in a background thread.
     """
@@ -58,6 +61,8 @@ def run_search(
         successful_cards: list[tuple[int, str]] = []  # (qty, name) for found cards only
 
         for i, (qty, name) in enumerate(card_list):
+            if cancel_event and cancel_event.is_set():
+                break
             basic = discount_basics and _is_basic(name)
             result, reason = scryfall.find_cheapest_version(name)
 
@@ -103,15 +108,16 @@ def start_search(
     on_complete: callable,
     on_error: callable,
     discount_basics: bool = False,
-) -> threading.Thread:
-    """Create, start, and return a background thread that runs run_search."""
+) -> tuple[threading.Thread, threading.Event]:
+    """Create, start, and return a background thread and cancel event for run_search."""
+    cancel_event = threading.Event()
     thread = threading.Thread(
         target=run_search,
-        args=(card_list, on_progress, on_complete, on_error, discount_basics),
+        args=(card_list, on_progress, on_complete, on_error, discount_basics, cancel_event),
         daemon=True,
     )
     thread.start()
-    return thread
+    return thread, cancel_event
 
 
 # ---------------------------------------------------------------------------
