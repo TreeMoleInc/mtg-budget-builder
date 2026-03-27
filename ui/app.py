@@ -2,9 +2,27 @@
 
 import os
 import sys
+import threading
+import webbrowser
 import customtkinter as ctk
 from core.parser import parse_decklist
 from core import finder
+
+CURRENT_VERSION = "v1.0.0"
+RELEASES_URL = "https://github.com/TreeMoleInc/mtg-budget-builder/releases/latest"
+GITHUB_API_URL = "https://api.github.com/repos/TreeMoleInc/mtg-budget-builder/releases/latest"
+
+
+def _check_for_update(callback):
+    """Fetch latest release tag from GitHub in a background thread, call callback(latest_tag)."""
+    try:
+        import urllib.request, json
+        req = urllib.request.Request(GITHUB_API_URL, headers={"User-Agent": "mtg-budget-builder"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read())
+            callback(data.get("tag_name", ""))
+    except Exception:
+        pass  # Silently ignore — update check is best-effort
 
 
 def _resource(relative_path: str) -> str:
@@ -75,6 +93,27 @@ class BudgetBuilderApp(ctk.CTk):
         self._build_layout()
         self._apply_input_placeholder()
         self._apply_output_placeholder()
+
+        # Check for updates in the background
+        threading.Thread(
+            target=_check_for_update,
+            args=(self._on_update_check,),
+            daemon=True,
+        ).start()
+
+    def _on_update_check(self, latest_tag):
+        """Called from background thread when update check completes."""
+        if latest_tag and latest_tag != CURRENT_VERSION:
+            def _show():
+                if not self.winfo_exists():
+                    return
+                self.update_label.configure(
+                    text=f"Update available: {latest_tag} — click to download",
+                    text_color="#ffb74d",
+                    cursor="hand2",
+                )
+                self.update_label.bind("<Button-1>", lambda e: webbrowser.open(RELEASES_URL))
+            self.after(0, _show)
 
     # -----------------------------------------------------------------------
     # Layout
@@ -263,6 +302,15 @@ class BudgetBuilderApp(ctk.CTk):
             font=ctk.CTkFont(size=12),
         )
         self.status_label.grid(row=2, column=0, columnspan=2, padx=12, pady=(0, 8), sticky="w")
+
+        # Update banner — hidden until an update is found
+        self.update_label = ctk.CTkLabel(
+            self,
+            text="",
+            text_color=MUTED_COLOR,
+            font=ctk.CTkFont(size=12),
+        )
+        self.update_label.grid(row=3, column=0, columnspan=2, padx=12, pady=(0, 6), sticky="w")
 
     # -----------------------------------------------------------------------
     # Placeholder helpers
