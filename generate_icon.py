@@ -82,5 +82,42 @@ def generate(path: str = "icon.ico"):
     print("Saved icon_preview.png  (128px preview, nearest-neighbour)")
 
 
+def generate_icns(path: str = "icon.icns"):
+    """Generate a macOS .icns file from the pixel-art icon.
+    Must be run on macOS — requires the 'iconutil' command-line tool.
+    """
+    import os, subprocess, tempfile, shutil
+
+    # macOS iconset sizes (filename format required by iconutil)
+    iconset_sizes = [
+        (16,   "icon_16x16.png"),
+        (32,   "icon_16x16@2x.png"),
+        (32,   "icon_32x32.png"),
+        (64,   "icon_32x32@2x.png"),
+        (128,  "icon_128x128.png"),
+        (256,  "icon_128x128@2x.png"),
+        (256,  "icon_256x256.png"),
+        (512,  "icon_256x256@2x.png"),
+        (512,  "icon_512x512.png"),
+        (1024, "icon_512x512@2x.png"),
+    ]
+
+    iconset_dir = path.replace(".icns", ".iconset")
+    os.makedirs(iconset_dir, exist_ok=True)
+
+    for size, filename in iconset_sizes:
+        img = make_base(size)
+        img.save(os.path.join(iconset_dir, filename))
+        print(f"  {filename}")
+
+    subprocess.run(["iconutil", "-c", "icns", iconset_dir, "-o", path], check=True)
+    shutil.rmtree(iconset_dir)
+    print(f"Saved {path}")
+
+
 if __name__ == "__main__":
-    generate()
+    import sys
+    if "--icns" in sys.argv:
+        generate_icns()
+    else:
+        generate()

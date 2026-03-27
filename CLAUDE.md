@@ -2,8 +2,6 @@
 
 ## TODO
 
-- **macOS packaging:** Create `build_macos.spec` for PyInstaller, generate a 512px `icon_512.png` from the existing pixel-art icon, add macOS `.icns` support, and produce a `.app` bundle / `.dmg` for distribution.
-
 ---
 
 ## Releasing a New Version
