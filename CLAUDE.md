@@ -2,8 +2,22 @@
 
 ## TODO
 
-- **Version control & auto-update:** Set up a public GitHub repo, push code, create releases. Add a startup version check (GitHub Releases API) that shows an "update available" banner linking to the releases page. Rebuild exe pointing at the repo.
 - **macOS packaging:** Create `build_macos.spec` for PyInstaller, generate a 512px `icon_512.png` from the existing pixel-art icon, add macOS `.icns` support, and produce a `.app` bundle / `.dmg` for distribution.
+
+---
+
+## Releasing a New Version
+
+When the user says **"release vX.Y.Z"**, perform these steps in order:
+
+1. Bump `CURRENT_VERSION = "vX.Y.Z"` in `ui/app.py`
+2. Update `self.title("MTG Budget Builder vX.Y.Z")` in `ui/app.py`
+3. Update `name="MTG Budget Builder (vX.Y.Z)"` in `build_windows.spec`
+4. Rebuild the exe: `.venv/Scripts/pyinstaller build_windows.spec --noconfirm`
+5. Commit and push: `git add -A && git commit -m "Release vX.Y.Z" && git push`
+6. Create GitHub release: `gh release create vX.Y.Z "dist/MTG Budget Builder (vX.Y.Z).exe" --title "vX.Y.Z" --notes "..."`
+
+Use the user's provided release notes if given, otherwise use a generic "Bug fixes and improvements."
 
 ---
 
