@@ -1,0 +1,20 @@
+# Claude Code local config
+.claude/
+CLAUDE.md
+
+# Virtual environment
+.venv/
+
+# PyInstaller build artifacts
+build/
+dist/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# OS
+.DS_Store
+Thumbs.db
