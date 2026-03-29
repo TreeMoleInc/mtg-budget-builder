@@ -8,7 +8,7 @@ import customtkinter as ctk
 from core.parser import parse_decklist
 from core import finder
 
-CURRENT_VERSION = "v1.0.0" 
+CURRENT_VERSION = "v1.0.1"
 RELEASES_URL = "https://github.com/TreeMoleInc/mtg-budget-builder/releases/latest"
 GITHUB_API_URL = "https://api.github.com/repos/TreeMoleInc/mtg-budget-builder/releases/latest"
 
@@ -71,7 +71,7 @@ class BudgetBuilderApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("MTG Budget Builder v1.0.0")
+        self.title("MTG Budget Builder v1.0.1")
         self.minsize(900, 600)
         self.configure(fg_color=BG_COLOR)
 
@@ -438,7 +438,7 @@ class BudgetBuilderApp(ctk.CTk):
         self.progress_bar.grid()
         self.progress_bar.set(0)
         self.status_label.configure(
-            text=f"Starting search... (0 / {len(cards)})", text_color=MUTED_COLOR
+            text=f"Resolving cards... (0 / {len(cards)})", text_color=MUTED_COLOR
         )
 
         # Switch search button to Cancel
@@ -456,11 +456,23 @@ class BudgetBuilderApp(ctk.CTk):
             on_complete=self._cb_complete,
             on_error=self._cb_error,
             discount_basics=self.discount_basics_var.get(),
+            on_status=self._cb_status,
         )
 
     # -----------------------------------------------------------------------
     # Callbacks (called from background thread — always use after())
     # -----------------------------------------------------------------------
+    def _cb_status(self, completed, total):
+        """Called during parallel fetch phase — updates bar and label only."""
+        def _update():
+            if not self.winfo_exists():
+                return
+            self.progress_bar.set(completed / total if total > 0 else 0)
+            self.status_label.configure(
+                text=f"Fetching prices... ({completed} / {total})", text_color=MUTED_COLOR
+            )
+        self.after(0, _update)
+
     def _cb_progress(self, current, total, card_name, result_line, price_str, is_basic):
         def _update():
             if not self.winfo_exists():

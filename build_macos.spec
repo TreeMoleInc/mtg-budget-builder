@@ -29,7 +29,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name="MTG Budget Builder (v1.0.0 macOS)",
+    name="MTG Budget Builder (v1.0.1 macOS)",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -49,17 +49,17 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name="MTG Budget Builder (v1.0.0 macOS)",
+    name="MTG Budget Builder (v1.0.1 macOS)",
 )
 
 app = BUNDLE(
     coll,
-    name="MTG Budget Builder (v1.0.0 macOS).app",
+    name="MTG Budget Builder (v1.0.1 macOS).app",
     icon="assets/icon.icns",
     bundle_identifier="com.treemoleinc.mtgbudgetbuilder",
     info_plist={
-        "CFBundleShortVersionString": "1.0.0",
-        "CFBundleVersion": "1.0.0",
+        "CFBundleShortVersionString": "1.0.1",
+        "CFBundleVersion": "1.0.1",
         "NSHighResolutionCapable": True,
     },
 )
