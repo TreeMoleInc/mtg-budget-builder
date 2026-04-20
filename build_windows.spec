@@ -31,7 +31,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name="MTG Budget Builder (v1.0.0 Windows)",
+    name="MTG Budget Builder (v1.0.1 Windows)",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

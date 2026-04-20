@@ -8,7 +8,7 @@ import customtkinter as ctk
 from core.parser import parse_decklist
 from core import finder
 
-CURRENT_VERSION = "v1.0.0" 
+CURRENT_VERSION = "v1.0.1"
 RELEASES_URL = "https://github.com/TreeMoleInc/mtg-budget-builder/releases/latest"
 GITHUB_API_URL = "https://api.github.com/repos/TreeMoleInc/mtg-budget-builder/releases/latest"
 
@@ -28,9 +28,7 @@ def _check_for_update(callback):
 def _resource(relative_path: str) -> str:
     """Resolve a resource path that works both in development and in a PyInstaller bundle."""
     if hasattr(sys, "_MEIPASS"):
-        # Running from a PyInstaller bundle — resources are in the temp extraction dir
         return os.path.join(sys._MEIPASS, relative_path)
-    # Development — resources live at the project root (one level above ui/)
     return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), relative_path)
 
 # ---------------------------------------------------------------------------
@@ -71,11 +69,10 @@ class BudgetBuilderApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("MTG Budget Builder v1.0.0")
+        self.title("MTG Budget Builder v1.0.1")
         self.minsize(900, 600)
         self.configure(fg_color=BG_COLOR)
 
-        # Set window icon (title bar + taskbar)
         ico = _resource("assets/icon.ico")
         if os.path.exists(ico):
             try:
@@ -83,22 +80,15 @@ class BudgetBuilderApp(ctk.CTk):
             except Exception:
                 pass
 
-        # Placeholder state
         self._input_has_placeholder = True
         self._output_has_placeholder = True
-
-        # Track whether a search is running
         self._searching = False
         self._cancel_event = None
-
-        # Basics discount toggle
-        self.discount_basics_var = ctk.BooleanVar(value=False)
 
         self._build_layout()
         self._apply_input_placeholder()
         self._apply_output_placeholder()
 
-        # Check for updates in the background
         threading.Thread(
             target=_check_for_update,
             args=(self._on_update_check,),
@@ -106,7 +96,6 @@ class BudgetBuilderApp(ctk.CTk):
         ).start()
 
     def _on_update_check(self, latest_tag):
-        """Called from background thread when update check completes."""
         if latest_tag and latest_tag != CURRENT_VERSION:
             def _show():
                 if not self.winfo_exists():
@@ -123,7 +112,6 @@ class BudgetBuilderApp(ctk.CTk):
     # Layout
     # -----------------------------------------------------------------------
     def _build_layout(self):
-        # Root grid: 3 rows — main content, progress bar, status label
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
@@ -164,20 +152,7 @@ class BudgetBuilderApp(ctk.CTk):
             font=ctk.CTkFont(size=14, weight="bold"),
             command=self._on_search_clicked,
         )
-        self.search_btn.grid(row=2, column=0, padx=10, pady=(0, 6), sticky="ew")
-
-        self.discount_basics_check = ctk.CTkCheckBox(
-            left_frame,
-            text="Discount basics for price",
-            variable=self.discount_basics_var,
-            fg_color=BTN_GREEN,
-            hover_color=BTN_HOVER,
-            checkmark_color=BG_COLOR,
-            border_color=BORDER_COLOR,
-            text_color=TEXT_COLOR,
-            font=ctk.CTkFont(size=12),
-        )
-        self.discount_basics_check.grid(row=3, column=0, padx=14, pady=(0, 10), sticky="w")
+        self.search_btn.grid(row=2, column=0, padx=10, pady=(0, 10), sticky="ew")
 
         # ---- Right column ----
         right_frame = ctk.CTkFrame(self, fg_color=PANEL_BG, corner_radius=8)
@@ -191,7 +166,6 @@ class BudgetBuilderApp(ctk.CTk):
         )
         output_label.grid(row=0, column=0, padx=10, pady=(10, 4), sticky="w")
 
-        # Output area: card list + price column side by side
         output_area = ctk.CTkFrame(right_frame, fg_color=BG_COLOR, corner_radius=6)
         output_area.grid(row=1, column=0, padx=10, pady=(0, 8), sticky="nsew")
         output_area.grid_rowconfigure(0, weight=1)
@@ -209,10 +183,8 @@ class BudgetBuilderApp(ctk.CTk):
         )
         self.output_box.grid(row=0, column=0, padx=(4, 0), pady=4, sticky="nsew")
 
-        # Text tags for coloured output lines
         self.output_box._textbox.tag_configure("error", foreground=ERROR_COLOR)
         self.output_box._textbox.tag_configure("basic", foreground=BASIC_BLUE)
-        # Placeholder tag — muted color, no special meaning
         self.output_box._textbox.tag_configure("placeholder", foreground=MUTED_COLOR)
 
         self.price_box = ctk.CTkTextbox(
@@ -228,8 +200,6 @@ class BudgetBuilderApp(ctk.CTk):
         )
         self.price_box.grid(row=0, column=1, padx=(2, 4), pady=4, sticky="ns")
 
-        # Sync scroll: yscrollcommand fires for ALL scroll mechanisms (drag, wheel, keyboard).
-        # Re-entrancy guard (_syncing) prevents the two handlers calling each other indefinitely.
         _out_tb = self.output_box._textbox
         _price_tb = self.price_box._textbox
         _syncing = [False]
@@ -251,13 +221,10 @@ class BudgetBuilderApp(ctk.CTk):
         _out_tb.configure(yscrollcommand=_output_yscroll)
         _price_tb.configure(yscrollcommand=_price_yscroll)
 
-        # Bind scroll to root window so it works without needing widget focus.
-        # macOS/Linux use Button-4/5 events instead of MouseWheel.
         self.bind_all("<MouseWheel>", self._on_scroll)
         self.bind_all("<Button-4>", self._on_scroll)
         self.bind_all("<Button-5>", self._on_scroll)
 
-        # Bottom bar — 2-row layout: copy button left, price info stacked right
         right_bottom = ctk.CTkFrame(right_frame, fg_color="transparent")
         right_bottom.grid(row=2, column=0, padx=10, pady=(0, 10), sticky="ew")
         right_bottom.grid_columnconfigure(0, weight=1)
@@ -291,7 +258,6 @@ class BudgetBuilderApp(ctk.CTk):
         )
         self.count_label.grid(row=1, column=1, sticky="e")
 
-        # ---- Progress bar (spans both columns) ----
         self.progress_bar = ctk.CTkProgressBar(
             self,
             fg_color=BORDER_COLOR,
@@ -299,18 +265,18 @@ class BudgetBuilderApp(ctk.CTk):
         )
         self.progress_bar.grid(row=1, column=0, columnspan=2, padx=12, pady=(0, 4), sticky="ew")
         self.progress_bar.set(0)
-        self.progress_bar.grid_remove()  # Hidden initially
+        self.progress_bar.grid_remove()
 
-        # ---- Status label (spans both columns) ----
         self.status_label = ctk.CTkLabel(
             self,
             text="",
             text_color=MUTED_COLOR,
             font=ctk.CTkFont(size=12),
+            anchor="w",
+            width=800,
         )
-        self.status_label.grid(row=2, column=0, columnspan=2, padx=12, pady=(0, 8), sticky="w")
+        self.status_label.grid(row=2, column=0, columnspan=2, padx=12, pady=(0, 8), sticky="ew")
 
-        # Update banner — hidden until an update is found
         self.update_label = ctk.CTkLabel(
             self,
             text="",
@@ -340,13 +306,11 @@ class BudgetBuilderApp(ctk.CTk):
             self._apply_input_placeholder()
 
     def _apply_output_placeholder(self):
-        """Show placeholder text in the output box (read-only, muted color)."""
         tb = self.output_box._textbox
         tb.configure(state="normal")
         tb.delete("1.0", "end")
         tb.insert("1.0", OUTPUT_PLACEHOLDER, "placeholder")
         tb.configure(state="disabled")
-
         self._set_price_box_text(PRICE_PLACEHOLDER, placeholder=True)
         self._output_has_placeholder = True
 
@@ -358,7 +322,6 @@ class BudgetBuilderApp(ctk.CTk):
         self.price_box.configure(text_color=color, state="disabled")
 
     def _output_append(self, text: str, tag: str = ""):
-        """Append a line to the output box with optional colour tag. Keeps box read-only."""
         tb = self.output_box._textbox
         tb.configure(state="normal")
         current = tb.get("1.0", "end")
@@ -399,16 +362,14 @@ class BudgetBuilderApp(ctk.CTk):
         self.search_btn.configure(state="disabled", text="Cancelling...")
         self.status_label.configure(text="Cancelling...", text_color=MUTED_COLOR)
 
+    # -----------------------------------------------------------------------
     # Search
     # -----------------------------------------------------------------------
     def _on_search_clicked(self):
         if self._searching:
             return
 
-        if self._input_has_placeholder:
-            raw_text = ""
-        else:
-            raw_text = self.input_box.get("1.0", "end").strip()
+        raw_text = "" if self._input_has_placeholder else self.input_box.get("1.0", "end").strip()
 
         if not raw_text:
             self.status_label.configure(
@@ -424,7 +385,6 @@ class BudgetBuilderApp(ctk.CTk):
             )
             return
 
-        # Clear output boxes
         tb = self.output_box._textbox
         tb.configure(state="normal")
         tb.delete("1.0", "end")
@@ -434,14 +394,12 @@ class BudgetBuilderApp(ctk.CTk):
         self.total_label.configure(text="Total: $0.00")
         self.count_label.configure(text="0 cards  \u00b7  0 unique")
 
-        # Show progress bar
         self.progress_bar.grid()
         self.progress_bar.set(0)
         self.status_label.configure(
             text=f"Starting search... (0 / {len(cards)})", text_color=MUTED_COLOR
         )
 
-        # Switch search button to Cancel
         self._searching = True
         self.search_btn.configure(
             text="Cancel",
@@ -455,7 +413,8 @@ class BudgetBuilderApp(ctk.CTk):
             on_progress=self._cb_progress,
             on_complete=self._cb_complete,
             on_error=self._cb_error,
-            discount_basics=self.discount_basics_var.get(),
+            on_cancel=self._cb_cancel,
+            on_rate_limit=self._cb_rate_limit,
         )
 
     # -----------------------------------------------------------------------
@@ -465,41 +424,33 @@ class BudgetBuilderApp(ctk.CTk):
         def _update():
             if not self.winfo_exists():
                 return
-
             self.progress_bar.set(current / total if total > 0 else 0)
             self.status_label.configure(
                 text=f"Searching... {current} / {total}  ({card_name})",
                 text_color=MUTED_COLOR,
             )
-
-            # Pick colour tag for this line
             if is_basic:
                 tag = "basic"
             elif result_line.startswith("# ERROR") or result_line.startswith("# WARNING"):
                 tag = "error"
             else:
                 tag = ""
-
             self._output_append(result_line, tag)
-
-            # Append matching price line — one entry per card, always in sync with output box.
-            # Use card index (not box content) for the prefix so empty error prices
-            # don't cause the next card's price to fill the wrong row.
             self.price_box.configure(state="normal")
             p_prefix = "" if current == 1 else "\n"
             self.price_box._textbox.insert("end", p_prefix + (price_str or ""))
             self.price_box.configure(state="disabled")
-
         self.after(0, _update)
 
-    def _cb_complete(self, result_lines, error_lines, total_price, total_cards, unique_cards):
+    def _cb_complete(self, result_lines, error_lines, total_price, total_cards, unique_cards, basic_cards, unique_basics):
         def _update():
             if not self.winfo_exists():
                 return
             self.progress_bar.grid_remove()
             self.total_label.configure(text=f"Total: ${total_price:.2f}")
+            basics_str = f"  \u00b7  {basic_cards} basics" if basic_cards > 0 else ""
             self.count_label.configure(
-                text=f"{total_cards} cards  \u00b7  {unique_cards} unique"
+                text=f"{total_cards} cards  \u00b7  {unique_cards} unique{basics_str}"
             )
             found = len(result_lines) - len(error_lines)
             self.status_label.configure(
@@ -508,7 +459,24 @@ class BudgetBuilderApp(ctk.CTk):
             )
             self._searching = False
             self._reset_search_btn()
+        self.after(0, _update)
 
+    def _cb_cancel(self):
+        def _update():
+            if not self.winfo_exists():
+                return
+            self.progress_bar.grid_remove()
+            tb = self.output_box._textbox
+            tb.configure(state="normal")
+            tb.delete("1.0", "end")
+            tb.configure(state="disabled")
+            self._set_price_box_text("", placeholder=False)
+            self._apply_output_placeholder()
+            self.total_label.configure(text="Total: $0.00")
+            self.count_label.configure(text="0 cards  \u00b7  0 unique")
+            self.status_label.configure(text="Cancelled.", text_color=MUTED_COLOR)
+            self._searching = False
+            self._reset_search_btn()
         self.after(0, _update)
 
     def _cb_error(self, message):
@@ -521,7 +489,17 @@ class BudgetBuilderApp(ctk.CTk):
             )
             self._searching = False
             self._reset_search_btn()
+        self.after(0, _update)
 
+    def _cb_rate_limit(self, remaining: float):
+        def _update():
+            if not self.winfo_exists():
+                return
+            seconds = int(remaining) + 1
+            self.status_label.configure(
+                text=f"Rate limited by Scryfall \u2014 resuming in {seconds}s\u2026",
+                text_color="#ffb74d",
+            )
         self.after(0, _update)
 
     # -----------------------------------------------------------------------
@@ -530,13 +508,10 @@ class BudgetBuilderApp(ctk.CTk):
     def _on_copy_clicked(self):
         if self._output_has_placeholder:
             return
-
         content = self.output_box._textbox.get("1.0", "end").strip()
         if not content:
             return
-
         self.clipboard_clear()
         self.clipboard_append(content)
-
         self.copy_btn.configure(text="Copied!")
         self.after(1500, lambda: self.copy_btn.configure(text="Copy List"))
